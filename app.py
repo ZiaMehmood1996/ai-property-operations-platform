@@ -191,3 +191,53 @@ if uploaded_file is not None:
             fig2,
             use_container_width=True
         )
+
+# -----------------------------
+# Property Ranking
+# -----------------------------
+
+if "Property" in df.columns and "Revenue" in df.columns:
+
+    st.subheader("🏆 Property Revenue Ranking")
+
+    ranking_df = (
+        df.groupby("Property")["Revenue"]
+        .sum()
+        .reset_index()
+        .sort_values(
+            by="Revenue",
+            ascending=False
+        )
+    )
+
+    ranking_df.insert(
+        0,
+        "Rank",
+        range(1, len(ranking_df) + 1)
+    )
+
+    st.dataframe(
+        ranking_df,
+        use_container_width=True
+    )
+
+# -----------------------------
+# Executive Summary
+# -----------------------------
+
+st.subheader("📋 Executive Summary")
+
+summary = f"""
+Total portfolio revenue is ${total_revenue:,.0f}.
+
+Average occupancy rate is {avg_occupancy}%.
+
+Total bookings recorded: {total_bookings}.
+
+Top performing property: {top_property}.
+
+Key Recommendation:
+Focus marketing efforts on lower-performing properties and analyze factors driving the success of the top property.
+"""
+
+st.info(summary)
