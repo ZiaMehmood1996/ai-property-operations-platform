@@ -353,3 +353,15 @@ Focus marketing efforts on lower-performing properties and analyze factors drivi
 """
 
     st.info(summary)
+
+
+    st.subheader("📥 Export Report")
+
+    csv = health_df.to_csv(index=False)
+
+    st.download_button(
+        label="Download Health Score Report",
+        data=csv,
+        file_name="property_health_report.csv",
+        mime="text/csv"
+    )
