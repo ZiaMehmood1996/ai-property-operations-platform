@@ -1,6 +1,11 @@
+import sys
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+
+# -----------------------------
+# Page Config
+# -----------------------------
 
 st.set_page_config(
     page_title="AI Property Operations Platform",
@@ -8,14 +13,43 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🏠 AI Property Operations Platform")
+# -----------------------------
+# Debug Info
+# -----------------------------
 
+st.write("Python Executable:")
+st.code(sys.executable)
+
+# -----------------------------
+# Header
+# -----------------------------
+
+st.title("🏠 AI Property Operations Platform")
 st.subheader("Property Management Analytics")
+
+# -----------------------------
+# Sidebar
+# -----------------------------
+
+st.sidebar.title("⚙️ Settings")
+
+api_key = st.sidebar.text_input(
+    "OpenAI API Key",
+    type="password"
+)
+
+# -----------------------------
+# File Upload
+# -----------------------------
 
 uploaded_file = st.file_uploader(
     "Upload CSV or Excel File",
     type=["csv", "xlsx"]
 )
+
+# -----------------------------
+# Main App
+# -----------------------------
 
 if uploaded_file is not None:
 
@@ -35,7 +69,6 @@ if uploaded_file is not None:
     cols = df.shape[1]
 
     missing_values = df.isnull().sum().sum()
-
     duplicate_rows = df.duplicated().sum()
 
     completeness_score = (
@@ -48,16 +81,21 @@ if uploaded_file is not None:
         - ((duplicate_rows / rows) * 100)
     )
 
-    quality_score = max(0, round(quality_score, 2))
+    quality_score = max(
+        0,
+        round(quality_score, 2)
+    )
 
-    # Dashboard Metrics
     col1, col2, col3, col4, col5 = st.columns(5)
 
     col1.metric("Rows", rows)
     col2.metric("Columns", cols)
     col3.metric("Missing Values", missing_values)
     col4.metric("Duplicates", duplicate_rows)
-    col5.metric("Quality Score", f"{quality_score}%")
+    col5.metric(
+        "Quality Score",
+        f"{quality_score}%"
+    )
 
     # -----------------------------
     # Dataset Preview
@@ -78,7 +116,10 @@ if uploaded_file is not None:
         "Missing Values": df.isnull().sum().values
     })
 
-    st.dataframe(info_df)
+    st.dataframe(
+        info_df,
+        use_container_width=True
+    )
 
     # -----------------------------
     # Data Quality Summary
@@ -97,30 +138,39 @@ if uploaded_file is not None:
         ]
     })
 
-    st.dataframe(quality_df)
+    st.dataframe(
+        quality_df,
+        use_container_width=True
+    )
 
     # -----------------------------
     # KPI Dashboard
     # -----------------------------
 
-    if "Revenue" in df.columns:
-        total_revenue = df["Revenue"].sum()
-    else:
-        total_revenue = 0
+    total_revenue = (
+        df["Revenue"].sum()
+        if "Revenue" in df.columns
+        else 0
+    )
 
-    if "Occupancy" in df.columns:
-        avg_occupancy = round(df["Occupancy"].mean(), 2)
-    else:
-        avg_occupancy = 0
+    avg_occupancy = (
+        round(df["Occupancy"].mean(), 2)
+        if "Occupancy" in df.columns
+        else 0
+    )
 
-    if "Bookings" in df.columns:
-        total_bookings = df["Bookings"].sum()
-    else:
-        total_bookings = 0
+    total_bookings = (
+        df["Bookings"].sum()
+        if "Bookings" in df.columns
+        else 0
+    )
 
     top_property = "N/A"
 
-    if "Property" in df.columns and "Revenue" in df.columns:
+    if (
+        "Property" in df.columns
+        and "Revenue" in df.columns
+    ):
         top_property = df.loc[
             df["Revenue"].idxmax(),
             "Property"
@@ -154,7 +204,10 @@ if uploaded_file is not None:
     # Revenue Chart
     # -----------------------------
 
-    if "Property" in df.columns and "Revenue" in df.columns:
+    if (
+        "Property" in df.columns
+        and "Revenue" in df.columns
+    ):
 
         st.subheader("📈 Revenue by Property")
 
@@ -162,7 +215,6 @@ if uploaded_file is not None:
             df,
             x="Property",
             y="Revenue",
-            title="Revenue by Property",
             text_auto=True
         )
 
@@ -175,7 +227,10 @@ if uploaded_file is not None:
     # Occupancy Chart
     # -----------------------------
 
-    if "Property" in df.columns and "Occupancy" in df.columns:
+    if (
+        "Property" in df.columns
+        and "Occupancy" in df.columns
+    ):
 
         st.subheader("🏠 Occupancy by Property")
 
@@ -183,7 +238,6 @@ if uploaded_file is not None:
             df,
             x="Property",
             y="Occupancy",
-            title="Occupancy by Property",
             text_auto=True
         )
 
@@ -192,42 +246,100 @@ if uploaded_file is not None:
             use_container_width=True
         )
 
-# -----------------------------
-# Property Ranking
-# -----------------------------
+    # -----------------------------
+    # Property Ranking
+    # -----------------------------
 
-if "Property" in df.columns and "Revenue" in df.columns:
+    if (
+        "Property" in df.columns
+        and "Revenue" in df.columns
+    ):
 
-    st.subheader("🏆 Property Revenue Ranking")
+        st.subheader("🏆 Property Revenue Ranking")
 
-    ranking_df = (
-        df.groupby("Property")["Revenue"]
-        .sum()
-        .reset_index()
-        .sort_values(
-            by="Revenue",
+        ranking_df = (
+            df.groupby("Property")["Revenue"]
+            .sum()
+            .reset_index()
+            .sort_values(
+                by="Revenue",
+                ascending=False
+            )
+        )
+
+        ranking_df.insert(
+            0,
+            "Rank",
+            range(
+                1,
+                len(ranking_df) + 1
+            )
+        )
+
+        st.dataframe(
+            ranking_df,
+            use_container_width=True
+        )
+
+    # -----------------------------
+    # Property Health Score
+    # -----------------------------
+
+    if all(
+        col in df.columns
+        for col in [
+            "Property",
+            "Revenue",
+            "Occupancy",
+            "Bookings"
+        ]
+    ):
+
+        st.subheader(
+            "💚 Property Health Score"
+        )
+
+        health_df = df[
+            [
+                "Property",
+                "Revenue",
+                "Occupancy",
+                "Bookings"
+            ]
+        ].copy()
+
+        health_df["Health Score"] = (
+            (health_df["Revenue"] /
+             health_df["Revenue"].max()) * 40
+            +
+            (health_df["Occupancy"] / 100) * 40
+            +
+            (health_df["Bookings"] /
+             health_df["Bookings"].max()) * 20
+        ).round(0)
+
+        health_df = health_df.sort_values(
+            by="Health Score",
             ascending=False
         )
-    )
 
-    ranking_df.insert(
-        0,
-        "Rank",
-        range(1, len(ranking_df) + 1)
-    )
+        st.dataframe(
+            health_df[
+                [
+                    "Property",
+                    "Health Score"
+                ]
+            ],
+            use_container_width=True
+        )
 
-    st.dataframe(
-        ranking_df,
-        use_container_width=True
-    )
+    # -----------------------------
+    # Executive Summary
+    # -----------------------------
 
-# -----------------------------
-# Executive Summary
-# -----------------------------
+    st.subheader("📋 Executive Summary")
 
-st.subheader("📋 Executive Summary")
-
-summary = f"""
+    summary = f"""
 Total portfolio revenue is ${total_revenue:,.0f}.
 
 Average occupancy rate is {avg_occupancy}%.
@@ -240,4 +352,4 @@ Key Recommendation:
 Focus marketing efforts on lower-performing properties and analyze factors driving the success of the top property.
 """
 
-st.info(summary)
+    st.info(summary)
